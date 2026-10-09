@@ -1,0 +1,11 @@
+/volleyball_vision_node:
+  ros__parameters:
+    calib_file: ""
+    model_path: ""
+    conf_thresh: 0.35
+    epipolar_thresh_px: 2.0
+    exposure_us: 1500.0
+    gain: 16
+    use_hw_trigger: true
+    enable_debug_image: false
+    frame_id: "camera_stereo_link"
