@@ -8,4 +8,4 @@
     gain: 16
     use_hw_trigger: true
     enable_debug_image: false
-    frame_id: "camera_stereo_link"
+    frame_id: "camera_optical_frame"

@@ -19,7 +19,7 @@ public:
         this->declare_parameter<int>("gain", 12);
         this->declare_parameter<bool>("use_hw_trigger", true);
         this->declare_parameter<bool>("enable_debug_image", false);
-        this->declare_parameter<std::string>("frame_id", "camera_stereo_link");
+        this->declare_parameter<std::string>("frame_id", "camera_optical_frame");
 
         calib_file_ = this->get_parameter("calib_file").as_string();
         model_path_ = this->get_parameter("model_path").as_string();
