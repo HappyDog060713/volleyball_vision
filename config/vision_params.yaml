@@ -1,7 +1,7 @@
 /volleyball_vision_node:
   ros__parameters:
-    calib_file: ""
-    model_path: ""
+    calib_file: "/home/aerialstewart/26_RC_Volleyball/src/volleyball_vision/config/stereo_calibration.yaml"
+    model_path: "/home/aerialstewart/26_RC_Volleyball/src/volleyball_vision/models/yolov8n.onnx"
     conf_thresh: 0.35
     epipolar_thresh_px: 2.0
     exposure_us: 1500.0
