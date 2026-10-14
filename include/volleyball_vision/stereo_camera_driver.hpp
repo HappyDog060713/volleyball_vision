@@ -28,6 +28,8 @@ public:
     bool initialize(int left_camera_index = 0, int right_camera_index = 1);
     bool setExposureTime(double exposure_us);
     bool setAnalogGain(int gain);
+    bool setROI(int x, int y, int width, int height);
+    bool setSpeedLevel(int level);
     bool setHardwareTrigger(bool enable);
     bool startGrabbing();
     void stopGrabbing();

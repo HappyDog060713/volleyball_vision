@@ -1,5 +1,8 @@
 #include "volleyball_vision/stereo_camera_driver.hpp"
 #include <iostream>
+#include <vector>
+#include <set>
+#include <string>
 
 namespace volleyball_vision {
 
@@ -39,24 +42,57 @@ bool StereoCameraDriver::initialize(int left_camera_index, int right_camera_inde
     int camera_count = 16;
     CameraEnumerateDevice(dev_list, &camera_count);
 
-    if (camera_count < 2) {
-        std::cerr << "[StereoCameraDriver] Found only " << camera_count
-                  << " MindVision cameras. At least 2 are required." << std::endl;
+    // Deduplicate physical cameras by SN, preferring subnet matching routes (e.g. 192.168.1.100)
+    std::vector<tSdkCameraDevInfo> unique_cameras;
+    std::set<std::string> seen_sns;
+    for (int i = 0; i < camera_count; ++i) {
+        std::string port_str(dev_list[i].acPortType);
+        std::string sn(dev_list[i].acSn);
+        if (port_str.find("192.168.1.100") != std::string::npos && seen_sns.find(sn) == seen_sns.end()) {
+            seen_sns.insert(sn);
+            unique_cameras.push_back(dev_list[i]);
+        }
+    }
+    if (unique_cameras.size() < 2) {
+        for (int i = 0; i < camera_count; ++i) {
+            std::string sn(dev_list[i].acSn);
+            if (seen_sns.find(sn) == seen_sns.end()) {
+                seen_sns.insert(sn);
+                unique_cameras.push_back(dev_list[i]);
+            }
+        }
+    }
+
+    if (unique_cameras.size() < 2) {
+        std::cerr << "[StereoCameraDriver] Found only " << unique_cameras.size()
+                  << " distinct physical MindVision cameras. At least 2 are required." << std::endl;
         return false;
     }
 
-    if (left_camera_index >= camera_count || right_camera_index >= camera_count) {
+    if (left_camera_index >= static_cast<int>(unique_cameras.size()) ||
+        right_camera_index >= static_cast<int>(unique_cameras.size())) {
         std::cerr << "[StereoCameraDriver] Invalid camera indices." << std::endl;
         return false;
     }
 
-    if (!initSingleCamera(left_camera_index, left_handle_, dev_list[left_camera_index])) {
+    std::cout << "[StereoCameraDriver] Initializing Left Camera: SN " << unique_cameras[left_camera_index].acSn
+              << " (" << unique_cameras[left_camera_index].acPortType << ")" << std::endl;
+    if (!initSingleCamera(left_camera_index, left_handle_, unique_cameras[left_camera_index])) {
         return false;
     }
-    if (!initSingleCamera(right_camera_index, right_handle_, dev_list[right_camera_index])) {
+
+    std::cout << "[StereoCameraDriver] Initializing Right Camera: SN " << unique_cameras[right_camera_index].acSn
+              << " (" << unique_cameras[right_camera_index].acPortType << ")" << std::endl;
+    if (!initSingleCamera(right_camera_index, right_handle_, unique_cameras[right_camera_index])) {
         releaseSingleCamera(left_handle_);
         return false;
     }
+
+    // 方案 1: 硬件降档至均衡档 (Speed Level 1)，将双目总带宽控制在约 700 Mbps，完全适配 1000M 交换机物理上限
+    setSpeedLevel(1);
+
+    // 方案 2: 垂直方向启用 ROI 裁剪 (1280x720, 截取上部 720 行，裁掉底部车体/地面死区，数据量骤降 30%)
+    setROI(0, 0, 1280, 720);
 
     // Allocate RGB frame buffers
     int max_width = 1920;
@@ -64,6 +100,28 @@ bool StereoCameraDriver::initialize(int left_camera_index, int right_camera_inde
     left_buffer_ = (unsigned char*)malloc(max_width * max_height * 3);
     right_buffer_ = (unsigned char*)malloc(max_width * max_height * 3);
 
+    return true;
+}
+
+bool StereoCameraDriver::setROI(int x, int y, int width, int height) {
+    if (left_handle_ > 0) {
+        CameraSetImageResolutionEx(left_handle_, 0xFF, 0, 0, x, y, width, height, 0, 0);
+    }
+    if (right_handle_ > 0) {
+        CameraSetImageResolutionEx(right_handle_, 0xFF, 0, 0, x, y, width, height, 0, 0);
+    }
+    return true;
+}
+
+bool StereoCameraDriver::setSpeedLevel(int level) {
+    if (left_handle_ > 0) {
+        CameraSetFrameSpeed(left_handle_, level);
+        CameraSetFrameRate(left_handle_, 0);
+    }
+    if (right_handle_ > 0) {
+        CameraSetFrameSpeed(right_handle_, level);
+        CameraSetFrameRate(right_handle_, 0);
+    }
     return true;
 }
 

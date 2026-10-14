@@ -17,6 +17,11 @@ public:
         this->declare_parameter<double>("epipolar_thresh_px", 2.0);
         this->declare_parameter<double>("exposure_us", 2000.0);
         this->declare_parameter<int>("gain", 12);
+        this->declare_parameter<int>("speed_level", 1);
+        this->declare_parameter<int>("roi_x", 0);
+        this->declare_parameter<int>("roi_y", 0);
+        this->declare_parameter<int>("roi_width", 1280);
+        this->declare_parameter<int>("roi_height", 720);
         this->declare_parameter<bool>("use_hw_trigger", true);
         this->declare_parameter<bool>("enable_debug_image", false);
         this->declare_parameter<std::string>("frame_id", "camera_optical_frame");
@@ -45,8 +50,14 @@ public:
             detector_.loadModel(model_path_, this->get_parameter("conf_thresh").as_double());
         }
 
-        // Setup camera driver
+        // Setup camera driver (方案 1: speed_level=1, 方案 2: ROI 1280x720)
         camera_driver_.initialize(0, 1);
+        camera_driver_.setSpeedLevel(this->get_parameter("speed_level").as_int());
+        camera_driver_.setROI(
+            this->get_parameter("roi_x").as_int(),
+            this->get_parameter("roi_y").as_int(),
+            this->get_parameter("roi_width").as_int(),
+            this->get_parameter("roi_height").as_int());
         camera_driver_.setExposureTime(this->get_parameter("exposure_us").as_double());
         camera_driver_.setAnalogGain(this->get_parameter("gain").as_int());
         camera_driver_.setHardwareTrigger(this->get_parameter("use_hw_trigger").as_bool());
