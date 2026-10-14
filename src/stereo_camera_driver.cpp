@@ -193,6 +193,8 @@ bool StereoCameraDriver::getStereoFrame(StereoFrame& out_frame, int timeout_ms) 
 
     out_frame.left.image = cv::Mat(head_l.iHeight, head_l.iWidth, CV_8UC3, left_buffer_).clone();
     out_frame.left.timestamp_us = head_l.uiTimeStamp;
+    out_frame.right.image = cv::Mat(head_r.iHeight, head_r.iWidth, CV_8UC3, right_buffer_).clone();
+    out_frame.right.timestamp_us = head_r.uiTimeStamp;
     static uint32_t s_frame_id = 0;
     out_frame.left.frame_id = ++s_frame_id;
     out_frame.right.frame_id = s_frame_id;

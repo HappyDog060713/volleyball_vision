@@ -79,6 +79,10 @@ private:
             return;
         }
 
+        if (frame.left.image.empty() || frame.right.image.empty()) {
+            return;
+        }
+
         cv::Mat left_rect, right_rect;
         rectifier_.rectify(frame.left.image, frame.right.image, left_rect, right_rect);
 
