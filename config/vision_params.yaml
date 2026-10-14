@@ -11,6 +11,6 @@
     roi_y: 0
     roi_width: 1280
     roi_height: 720
-    use_hw_trigger: true
-    enable_debug_image: false
+    use_hw_trigger: false
+    enable_debug_image: true
     frame_id: "camera_optical_frame"
