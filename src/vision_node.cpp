@@ -22,14 +22,16 @@ public:
         this->declare_parameter<int>("roi_y", 0);
         this->declare_parameter<int>("roi_width", 1280);
         this->declare_parameter<int>("roi_height", 720);
-        this->declare_parameter<bool>("use_hw_trigger", true);
+        this->declare_parameter<bool>("use_hw_trigger", false);
         this->declare_parameter<bool>("enable_debug_image", false);
+        this->declare_parameter<bool>("show_opencv_window", true);
         this->declare_parameter<std::string>("frame_id", "camera_optical_frame");
 
         calib_file_ = this->get_parameter("calib_file").as_string();
         model_path_ = this->get_parameter("model_path").as_string();
         frame_id_ = this->get_parameter("frame_id").as_string();
         enable_debug_image_ = this->get_parameter("enable_debug_image").as_bool();
+        show_opencv_window_ = this->get_parameter("show_opencv_window").as_bool();
 
         point_pub_ = this->create_publisher<geometry_msgs::msg::PointStamped>(
             "/volleyball/position", rclcpp::SensorDataQoS());
@@ -104,12 +106,32 @@ private:
             img_msg->header.frame_id = frame_id_;
             debug_img_pub_->publish(*img_msg);
         }
+
+        if (show_opencv_window_) {
+            cv::Mat disp_l = left_rect.clone();
+            for (const auto& det : left_dets) {
+                cv::rectangle(disp_l, det.bbox, cv::Scalar(0, 255, 0), 2);
+                cv::circle(disp_l, det.center, 4, cv::Scalar(0, 0, 255), -1);
+                std::string label = "Ball " + std::to_string(static_cast<int>(det.confidence * 100)) + "%";
+                cv::putText(disp_l, label, cv::Point(det.bbox.x, std::max(20, (int)det.bbox.y - 5)),
+                            cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2);
+            }
+            if (tri_pt.is_valid) {
+                std::string pos_text = "3D Pos: X=" + cv::format("%.2f", tri_pt.point_3d.x) +
+                                       " Y=" + cv::format("%.2f", tri_pt.point_3d.y) +
+                                       " Z=" + cv::format("%.2f", tri_pt.point_3d.z) + " m";
+                cv::putText(disp_l, pos_text, cv::Point(20, 40), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 255), 2);
+            }
+            cv::imshow("Volleyball Vision ROS 2 Node (Direct OpenCV GUI)", disp_l);
+            cv::waitKey(1);
+        }
     }
 
     std::string calib_file_;
     std::string model_path_;
     std::string frame_id_;
     bool enable_debug_image_{false};
+    bool show_opencv_window_{true};
 
     volleyball_vision::StereoCameraDriver camera_driver_;
     volleyball_vision::StereoRectifier rectifier_;

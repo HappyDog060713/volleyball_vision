@@ -13,4 +13,5 @@
     roi_height: 720
     use_hw_trigger: false
     enable_debug_image: true
+    show_opencv_window: true
     frame_id: "camera_optical_frame"
