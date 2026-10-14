@@ -32,19 +32,25 @@ std::vector<Detection> YoloDetector::detect(const cv::Mat& image) {
     cv::dnn::blobFromImage(image, blob, 1.0 / 255.0, cv::Size(input_width_, input_height_),
                            cv::Scalar(), true, false);
 
-    net_.setInput(blob);
     std::vector<cv::Mat> outputs;
-    net_.forward(outputs, net_.getUnconnectedOutLayersNames());
+    cv::Mat output;
+    try {
+        net_.setInput(blob);
+        net_.forward(outputs, net_.getUnconnectedOutLayersNames());
 
-    if (outputs.empty()) return detections;
+        if (outputs.empty()) return detections;
 
-    cv::Mat output = outputs[0]; // Shape usually [1, num_features, num_proposals] or [1, num_proposals, num_features]
-    if (output.dims == 3 && output.size[1] < output.size[2]) {
-        // Transpose [1, 5+C, 8400] -> [8400, 5+C]
-        output = output.reshape(1, output.size[1]);
-        cv::transpose(output, output);
-    } else if (output.dims == 3) {
-        output = output.reshape(1, output.size[1]);
+        output = outputs[0]; // Shape usually [1, num_features, num_proposals] or [1, num_proposals, num_features]
+        if (output.dims == 3 && output.size[1] < output.size[2]) {
+            // Transpose [1, 5+C, 8400] -> [8400, 5+C]
+            output = output.reshape(1, output.size[1]);
+            cv::transpose(output, output);
+        } else if (output.dims == 3) {
+            output = output.reshape(1, output.size[1]);
+        }
+    } catch (const cv::Exception& e) {
+        std::cerr << "[YoloDetector] Exception in forward/reshape: " << e.what() << std::endl;
+        return detections;
     }
 
     float x_factor = (float)image.cols / input_width_;
