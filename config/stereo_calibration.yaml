@@ -2,7 +2,7 @@
 image_width: 1920
 image_height: 1080
 
-# Example calibration parameters for 1.8m baseline
+# Stereo calibration parameters for 0.8m baseline
 K1: !!opencv-matrix
    rows: 3
    cols: 3
@@ -35,4 +35,4 @@ T: !!opencv-matrix
    rows: 3
    cols: 1
    dt: d
-   data: [ -1.8, 0.0, 0.0 ]
+   data: [ -0.8, 0.0, 0.0 ]
