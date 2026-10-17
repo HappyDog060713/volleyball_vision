@@ -101,32 +101,49 @@ private:
             point_pub_->publish(msg);
         }
 
+        cv::Mat disp_l = left_rect.clone();
+        cv::Mat disp_r = right_rect.clone();
+
+        for (const auto& det : left_dets) {
+            cv::rectangle(disp_l, det.bbox, cv::Scalar(0, 255, 0), 2);
+            cv::circle(disp_l, det.center, 4, cv::Scalar(0, 0, 255), -1);
+            std::string label = "Ball " + std::to_string(static_cast<int>(det.confidence * 100)) + "%";
+            cv::putText(disp_l, label, cv::Point(det.bbox.x, std::max(20, (int)det.bbox.y - 5)),
+                        cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2);
+        }
+
+        for (const auto& det : right_dets) {
+            cv::rectangle(disp_r, det.bbox, cv::Scalar(0, 255, 0), 2);
+            cv::circle(disp_r, det.center, 4, cv::Scalar(0, 0, 255), -1);
+            std::string label = "Ball " + std::to_string(static_cast<int>(det.confidence * 100)) + "%";
+            cv::putText(disp_r, label, cv::Point(det.bbox.x, std::max(20, (int)det.bbox.y - 5)),
+                        cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2);
+        }
+
+        if (tri_pt.is_valid) {
+            std::string pos_text = "3D Pos: X=" + cv::format("%.2f", tri_pt.point_3d.x) +
+                                   " Y=" + cv::format("%.2f", tri_pt.point_3d.y) +
+                                   " Z=" + cv::format("%.2f", tri_pt.point_3d.z) + " m";
+            cv::putText(disp_l, pos_text, cv::Point(20, 40), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 255), 2);
+        }
+
+        cv::putText(disp_l, "Left Camera", cv::Point(20, 20), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 0), 2);
+        cv::putText(disp_r, "Right Camera", cv::Point(20, 20), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 0), 2);
+
+        cv::Mat small_l, small_r, combined;
+        cv::resize(disp_l, small_l, cv::Size(640, 360));
+        cv::resize(disp_r, small_r, cv::Size(640, 360));
+        cv::hconcat(small_l, small_r, combined);
+
         if (enable_debug_image_ && debug_img_pub_) {
-            for (const auto& det : left_dets) {
-                cv::rectangle(left_rect, det.bbox, cv::Scalar(0, 255, 0), 2);
-            }
-            auto img_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", left_rect).toImageMsg();
+            auto img_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", combined).toImageMsg();
             img_msg->header.stamp = this->now();
             img_msg->header.frame_id = frame_id_;
             debug_img_pub_->publish(*img_msg);
         }
 
         if (show_opencv_window_) {
-            cv::Mat disp_l = left_rect.clone();
-            for (const auto& det : left_dets) {
-                cv::rectangle(disp_l, det.bbox, cv::Scalar(0, 255, 0), 2);
-                cv::circle(disp_l, det.center, 4, cv::Scalar(0, 0, 255), -1);
-                std::string label = "Ball " + std::to_string(static_cast<int>(det.confidence * 100)) + "%";
-                cv::putText(disp_l, label, cv::Point(det.bbox.x, std::max(20, (int)det.bbox.y - 5)),
-                            cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2);
-            }
-            if (tri_pt.is_valid) {
-                std::string pos_text = "3D Pos: X=" + cv::format("%.2f", tri_pt.point_3d.x) +
-                                       " Y=" + cv::format("%.2f", tri_pt.point_3d.y) +
-                                       " Z=" + cv::format("%.2f", tri_pt.point_3d.z) + " m";
-                cv::putText(disp_l, pos_text, cv::Point(20, 40), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 255), 2);
-            }
-            cv::imshow("Volleyball Vision ROS 2 Node (Direct OpenCV GUI)", disp_l);
+            cv::imshow("Volleyball Vision ROS 2 Node (Direct OpenCV GUI)", combined);
             cv::waitKey(1);
         }
     }
